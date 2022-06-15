@@ -345,6 +345,16 @@ class CWDashboardConstruct(Construct):
         SectionWidgets = namedtuple("SectionWidgets", ["section_title", "widgets"])
 
         sections_widgets = [
+
+            SectionWidgets(
+                "All log messages containing ERROR",
+                [
+                    self._new_cw_log_widget(
+                        title="Error_Log_Entries",
+                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
+                    ),
+                ],
+            ),
             SectionWidgets(
                 "ParallelCluster's logs",
                 [
@@ -362,6 +372,11 @@ class CWDashboardConstruct(Construct):
                         title="slurm_suspend",
                         conditions=[Condition(["slurm"], scheduler)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*slurm_suspend")],
+                    ),
+                    self._new_cw_log_widget(
+                        title="slurm_error",
+                        conditions=[Condition(["slurm"], scheduler)],
+                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
                     ),
                 ],
             ),
@@ -424,7 +439,7 @@ class CWDashboardConstruct(Construct):
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*system-messages")],
                     ),
                     self._new_cw_log_widget(
-                        title="syslog",
+                        title="syslog is sus",
                         conditions=[Condition(["ubuntu1804", "ubuntu2004"], base_os)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*syslog")],
                     ),
@@ -437,7 +452,7 @@ class CWDashboardConstruct(Construct):
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*chef-client")],
                     ),
                     self._new_cw_log_widget(
-                        title="cloud-init",
+                        title="cloud-init ",
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*cloud-init$")],
                     ),
                     self._new_cw_log_widget(
