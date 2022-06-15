@@ -159,6 +159,10 @@ class CWDashboardConstruct(Construct):
                 for cond_dict in log_params.conditions:
                     if cond_dict.param in cond_dict.allowed_values:
                         self.empty_section = False
+                        return
+            else:
+                self.empty_section = False
+                return
 
     def _add_text_widget(self, markdown):
         """Add the textwidget to the cloudwatch dashboard and update coordinates."""
@@ -351,7 +355,7 @@ class CWDashboardConstruct(Construct):
                 [
                     self._new_cw_log_widget(
                         title="Error_Log_Entries",
-                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
+                        filters=[self._new_filter(param="@message", pattern="- ERROR -")],
                     ),
                 ],
             ),
@@ -372,11 +376,6 @@ class CWDashboardConstruct(Construct):
                         title="slurm_suspend",
                         conditions=[Condition(["slurm"], scheduler)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*slurm_suspend")],
-                    ),
-                    self._new_cw_log_widget(
-                        title="slurm_error",
-                        conditions=[Condition(["slurm"], scheduler)],
-                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
                     ),
                 ],
             ),
@@ -439,7 +438,7 @@ class CWDashboardConstruct(Construct):
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*system-messages")],
                     ),
                     self._new_cw_log_widget(
-                        title="syslog is sus",
+                        title="syslog",
                         conditions=[Condition(["ubuntu1804", "ubuntu2004"], base_os)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*syslog")],
                     ),
