@@ -10,6 +10,8 @@
 # limitations under the License.
 from collections import namedtuple
 
+import aws_cdk.aws_logs
+import aws_cdk.aws_cloudwatch
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk.core import Construct, Stack
@@ -59,6 +61,7 @@ class CWDashboardConstruct(Construct):
         self.head_node_instance = head_node_instance
         self.shared_storage_infos = shared_storage_infos
         self.cw_log_group_name = cw_log_group_name
+
 
         self.dashboard_name = self.stack_name + "-" + self._stack_region
         self.coord = Coord(x_value=0, y_value=0)
@@ -116,6 +119,8 @@ class CWDashboardConstruct(Construct):
             ),
         ]
 
+
+
         # Add EBS and RAID metrics graphs
         for storage_type, title in [
             (SharedStorageType.EBS, "## EBS Metrics"),
@@ -135,6 +140,10 @@ class CWDashboardConstruct(Construct):
         # Head Node logs, if CW Logs are enabled
         if self.config.is_cw_logging_enabled:
             self._add_cw_log()
+
+        self.add_custom_error_metrics()
+
+
 
     def _update_coord(self, d_x, d_y):
         """Calculate coordinates for the new graph."""
@@ -218,6 +227,66 @@ class CWDashboardConstruct(Construct):
                 graph_widget = self._generate_graph_widget(metric_condition_params.title, metric_list)
                 widgets_list.append(graph_widget)
         return widgets_list
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def custom_pcluster_metric(self, metric_name, filter_pattern):
+        return aws_cdk.aws_logs.CfnMetricFilter(
+            scope=self.stack_scope,
+            id=metric_name+" Filter",
+            filter_pattern=filter_pattern,
+            log_group_name=self.cw_log_group_name,
+            metric_transformations=[aws_cdk.aws_logs.CfnMetricFilter.MetricTransformationProperty(
+                metric_namespace="ParallelCluster/Errors",
+                metric_name=metric_name,
+                metric_value="1",
+                default_value=0,
+            )]
+        )
+
+    def metric_to_alarm(self, error_metric):
+        return cloudwatch.Alarm(
+            scope=self.stack_scope,
+            id="the",
+            metric=error_metric,
+            evaluation_periods=1,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+            threshold=1,
+        )
+
+    def add_custom_error_metrics(self):
+        error_metric_filter = [
+            self.custom_pcluster_metric(
+                metric_name="Missing IAM Permissions", filter_pattern="$.AccessDeniedException"
+            )
+        ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def _add_storage_widgets(self, metrics, storages_list, namespace, dimension_name):
         widgets_list = []
@@ -350,6 +419,15 @@ class CWDashboardConstruct(Construct):
 
         sections_widgets = [
             SectionWidgets(
+                "All log messages containing ERROR",
+                [
+                    self._new_cw_log_widget(
+                        title="Error_Log_Entries",
+                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
+                    ),
+                ],
+            ),
+            SectionWidgets(
                 "ParallelCluster's logs",
                 [
                     self._new_cw_log_widget(
@@ -366,6 +444,11 @@ class CWDashboardConstruct(Construct):
                         title="slurm_suspend",
                         conditions=[Condition(["slurm"], scheduler)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*slurm_suspend")],
+                    ),
+                    self._new_cw_log_widget(
+                        title="slurm_error",
+                        conditions=[Condition(["slurm"], scheduler)],
+                        filters=[self._new_filter(pattern=f"{head_private_ip}.*ERROR")],
                     ),
                 ],
             ),
@@ -428,7 +511,7 @@ class CWDashboardConstruct(Construct):
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*system-messages")],
                     ),
                     self._new_cw_log_widget(
-                        title="syslog",
+                        title="syslog is sus",
                         conditions=[Condition(["ubuntu1804", "ubuntu2004"], base_os)],
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*syslog")],
                     ),
@@ -441,7 +524,7 @@ class CWDashboardConstruct(Construct):
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*chef-client")],
                     ),
                     self._new_cw_log_widget(
-                        title="cloud-init",
+                        title="cloud-init ",
                         filters=[self._new_filter(pattern=f"{head_private_ip}.*cloud-init$")],
                     ),
                     self._new_cw_log_widget(
