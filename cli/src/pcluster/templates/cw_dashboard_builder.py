@@ -58,7 +58,6 @@ class CWDashboardConstruct(Construct):
         head_node_instance: ec2.CfnInstance,
         shared_storage_infos: dict,
         cw_log_group_name: str,
-        cw_log_group: logs.CfnLogGroup,
     ):
         super().__init__(scope, id)
         self.stack_scope = scope
@@ -67,7 +66,6 @@ class CWDashboardConstruct(Construct):
         self.head_node_instance = head_node_instance
         self.shared_storage_infos = shared_storage_infos
         self.cw_log_group_name = cw_log_group_name
-        self.cw_log_group = cw_log_group
 
         self.dashboard_name = self.stack_name + "-" + self._stack_region
         self.coord = Coord(x_value=0, y_value=0)
@@ -382,7 +380,7 @@ class CWDashboardConstruct(Construct):
 
         self.cloudwatch_dashboard.add_widgets(*widgets_list)
         self._update_coord_after_section(self.graph_height)
-        
+
         text_widgets = []
         for key in error_metric_dict:
             text_widget = cloudwatch.TextWidget(markdown="\n" + troubleshooting_links[key] + "\n", height=1, width=6)
