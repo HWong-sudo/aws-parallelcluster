@@ -383,6 +383,16 @@ class CWDashboardConstruct(Construct):
         self.cloudwatch_dashboard.add_widgets(*widgets_list)
         self._update_coord_after_section(self.graph_height)
 
+        text_widgets = []
+        for key in error_metric_dict:
+            text_widget = cloudwatch.TextWidget(markdown="\n" + troubleshooting_links[key] + "\n", height=1, width=6)
+            text_widget.position(x=self.coord.x_value, y=self.coord.y_value)
+            text_widgets.append(text_widget)
+            self.coord.x_value += self.graph_width
+        self.cloudwatch_dashboard.add_widgets(*text_widgets)
+        self.coord.x_value = 0
+        self.coord.y_value += 1
+
     def _add_storage_widgets(self, metrics, storages_list, namespace, dimension_name):
         widgets_list = []
         for metrics_param in metrics:

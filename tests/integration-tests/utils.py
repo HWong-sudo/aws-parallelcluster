@@ -128,7 +128,19 @@ def random_alphanumeric(size=16):
     return "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size))
 
 
-def retrieve_metric_data(unique_name, cluster_name, metric_name, period_length_sec, collection_time_min):
+def retrieve_cfn_parameters(stack_name, region):
+    """Retrieve CloudFormation Stack Parameters from a given stack."""
+    return _retrieve_cfn_data(stack_name, region, "Parameter")
+
+
+def retrieve_cfn_outputs(stack_name, region):
+    """Retrieve CloudFormation Stack Outputs from a given stack."""
+    return _retrieve_cfn_data(stack_name, region, "Output")
+
+
+def retrieve_metric_data(
+    unique_name, cluster_name, metric_name, period_length_sec, collection_time_min, stat="Sum", region="us-east-1"
+):
     """Create Boto3 get_metric_data request and output the results"""
     assert_that(len(unique_name)).is_equal_to(len(metric_name))
     metric_queries = []
@@ -141,12 +153,12 @@ def retrieve_metric_data(unique_name, cluster_name, metric_name, period_length_s
                     "MetricName": metric_name[i],
                 },
                 "Period": period_length_sec,
-                "Stat": "Sum",
+                "Stat": stat,
             },
         }
         metric_queries.insert(i, query)
 
-    client = boto3.client("cloudwatch", "us-east-1")
+    client = boto3.client("cloudwatch", region)
 
     return client.get_metric_data(
         MetricDataQueries=metric_queries,
@@ -158,7 +170,9 @@ def retrieve_metric_data(unique_name, cluster_name, metric_name, period_length_s
 
 def check_metric_data_query(response, desired_result):
     """
-    Iterates through get_metric_data query and check for desired results,
+    Iterates through get_metric_data query output and check for desired results,
+    output in MetricDataResults format which is described here
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudwatch.html#CloudWatch.Client.get_metric_data
     if desired results = 0 ,check for no change else check if value changed
     """
     list_of_responses = response["MetricDataResults"]
@@ -171,16 +185,6 @@ def check_metric_data_query(response, desired_result):
     except Exception as e:
         logging.warning(e)
         raise
-
-
-def retrieve_cfn_parameters(stack_name, region):
-    """Retrieve CloudFormation Stack Parameters from a given stack."""
-    return _retrieve_cfn_data(stack_name, region, "Parameter")
-
-
-def retrieve_cfn_outputs(stack_name, region):
-    """Retrieve CloudFormation Stack Outputs from a given stack."""
-    return _retrieve_cfn_data(stack_name, region, "Output")
 
 
 @retry(wait_exponential_multiplier=500, wait_exponential_max=5000, stop_max_attempt_number=5)
