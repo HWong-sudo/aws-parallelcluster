@@ -138,25 +138,29 @@ def retrieve_cfn_outputs(stack_name, region):
     return _retrieve_cfn_data(stack_name, region, "Output")
 
 
+def create_metric(unique_name, metric_name, cluster_name, period_length_sec, stat):
+    return {
+        "Id": unique_name,
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "ParallelCluster/Errors/" + cluster_name,
+                "MetricName": metric_name,
+            },
+            "Period": period_length_sec,
+            "Stat": stat,
+        },
+    }
+
+
 def retrieve_metric_data(
     unique_name, cluster_name, metric_name, period_length_sec, collection_time_min, stat="Sum", region="us-east-1"
 ):
     """Create Boto3 get_metric_data request and output the results"""
     assert_that(len(unique_name)).is_equal_to(len(metric_name))
-    metric_queries = []
-    for i in range(len(metric_name)):
-        query = {
-            "Id": unique_name[i],
-            "MetricStat": {
-                "Metric": {
-                    "Namespace": "ParallelCluster/Errors/" + cluster_name,
-                    "MetricName": metric_name[i],
-                },
-                "Period": period_length_sec,
-                "Stat": stat,
-            },
-        }
-        metric_queries.insert(i, query)
+    metric_queries = [
+        create_metric(unique_name, metric_name, cluster_name, period_length_sec, stat)
+        for unique_name, metric_name in zip(unique_name, metric_name)
+    ]
 
     client = boto3.client("cloudwatch", region)
 
