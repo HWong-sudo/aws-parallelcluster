@@ -1,3 +1,4 @@
+
 # Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
@@ -382,7 +383,7 @@ class CWDashboardConstruct(Construct):
 
         self.cloudwatch_dashboard.add_widgets(*widgets_list)
         self._update_coord_after_section(self.graph_height)
-        
+
         text_widgets = []
         for key in error_metric_dict:
             text_widget = cloudwatch.TextWidget(markdown="\n" + troubleshooting_links[key] + "\n", height=1, width=6)
